@@ -164,6 +164,12 @@ async function receiveMessage() {
 }
 
 // entrypoint
-setInterval(async () => {
-  await receiveMessage()
-}, 10000)
+const handler = async () => {
+  console.log('receiver started.')
+  console.log(config)
+  setInterval(async () => {
+    await receiveMessage()
+  }, 10000)
+}
+
+handler()
