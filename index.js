@@ -87,9 +87,9 @@ async function receiveMessage() {
       console.log(message.Body)
 
       const { submissionId } = JSON.parse(message.Body)
-      const submission = getSubmissionById(submissionId)
+      const submission = await getSubmissionById(submissionId)
       const languageId = getLanguageIdByName(submission.language)
-      const testcases = getTestcasesByProblemId(submission.problemId)
+      const testcases = await getTestcasesByProblemId(submission.problemId)
 
       const { data } = await axios.post(
         `http://${config.judgeHostDnsName}:2358/submissions/batch`,
@@ -168,7 +168,7 @@ async function receiveMessage() {
 }
 
 // entrypoint
-const handler = async () => {
+const handler = () => {
   console.clear()
   console.log('receiver started.')
   console.log(config)
