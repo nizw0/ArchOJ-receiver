@@ -70,25 +70,31 @@ async function getTestcasesByProblemId(problemId) {
   return testcases.filter((testcase) => !testcase.isSample)
 }
 
-async function getSubmissionsFromJudgeHost() {
+async function getSubmissionsFromJudgeHost(tokens) {
   let count = 0
 
-  const interval = setIntervalAsync(async () => {
-    if (count++ === 5) {
-      ;(async () => {
-        await clearIntervalAsync(interval)
-      })()
-    }
-    const { status, data } = await axios.get(
-      `http://localhost:2358/submissions/batch`,
-      {
-        params: { tokens },
+  await new Promise(async (resolve) => {
+    const interval = setIntervalAsync(async () => {
+      if (count++ === 5) {
+        ;(async () => {
+          await clearIntervalAsync(interval)
+        })()
       }
-    )
-    if (status === 200) return data.submissions
-  }, 3000)
+      const { status, data } = await axios.get(
+        `http://localhost:2358/submissions/batch`,
+        {
+          params: { tokens },
+        }
+      )
+      if (status === 200) {
+        resolve()
+        return data.submissions
+      }
+    }, 3000)
 
-  await clearIntervalAsync(interval)
+    await clearIntervalAsync(interval)
+  })
+
   return null
 }
 
@@ -109,6 +115,13 @@ async function receiveMessage() {
     for (const message of Messages) {
       console.log(`Message received at ${new Date(Date.now()).toISOString()}`)
       console.log(message.Body)
+
+      // Delete message from SQS
+      const deleteCommand = new DeleteMessageCommand({
+        QueueUrl: config.queueUrl,
+        ReceiptHandle: message.ReceiptHandle,
+      })
+      await sqsClient.send(deleteCommand)
 
       const { submissionId } = JSON.parse(message.Body)
       const submission = await getSubmissionById(submissionId)
@@ -140,14 +153,7 @@ async function receiveMessage() {
         .filter((datum) => datum.token != null)
         .map((datum) => datum.token)
 
-      // Delete message from SQS
-      const deleteCommand = new DeleteMessageCommand({
-        QueueUrl: config.queueUrl,
-        ReceiptHandle: message.ReceiptHandle,
-      })
-      await sqsClient.send(deleteCommand)
-
-      let submissions = await getSubmissionsFromJudgeHost()
+      let submissions = await getSubmissionsFromJudgeHost(tokens)
 
       let result = ''
       for (const submission of submissions) {
