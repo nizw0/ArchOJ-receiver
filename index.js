@@ -10,6 +10,7 @@ import {
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb'
 import axios from 'axios'
+import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async'
 import { config } from './config.js'
 
 const sqsClient = new SQSClient({
@@ -69,6 +70,28 @@ async function getTestcasesByProblemId(problemId) {
   return testcases.filter((testcase) => !testcase.isSample)
 }
 
+async function getSubmissionsFromJudgeHost() {
+  let count = 0
+
+  const interval = setIntervalAsync(async () => {
+    if (count++ === 5) {
+      ;(async () => {
+        await clearIntervalAsync(interval)
+      })()
+    }
+    const { status, data } = await axios.get(
+      `http://localhost:2358/submissions/batch`,
+      {
+        params: { tokens },
+      }
+    )
+    if (status === 200) return data.submissions
+  }, 3000)
+
+  await clearIntervalAsync(interval)
+  return null
+}
+
 async function receiveMessage() {
   try {
     // Receive message from SQS
@@ -84,7 +107,7 @@ async function receiveMessage() {
     if (Messages == null) return
 
     for (const message of Messages) {
-      console.log(`Message received at ${Date.now().toLocaleString()}`)
+      console.log(`Message received at ${new Date(Date.now()).toISOString()}`)
       console.log(message.Body)
 
       const { submissionId } = JSON.parse(message.Body)
@@ -124,18 +147,7 @@ async function receiveMessage() {
       })
       await sqsClient.send(deleteCommand)
 
-      let count = 0
-      let submissions = []
-      const interval = setInterval(async () => {
-        if (count++ === 5) clearInterval(interval)
-        const { status, data } = await axios.get(
-          `http://localhost:2358/submissions/batch`,
-          {
-            params: { tokens },
-          }
-        )
-        if (status === 200) submissions = data.submissions
-      }, 3000)
+      let submissions = await getSubmissionsFromJudgeHost()
 
       let result = ''
       for (const submission of submissions) {
