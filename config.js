@@ -2,7 +2,7 @@ import { SSMClient } from '@aws-sdk/client-ssm'
 import 'dotenv/config'
 import { getAllFromParametersStore, paramStoreConvertParams } from './utils.js'
 
-const ssmClient = new SSMClient({ region: process.env.AWS_REGION })
+const ssmClient = new SSMClient({ region: 'ap-southeast-1' })
 const rawParams = await getAllFromParametersStore(
   ssmClient,
   `/archoj/production`

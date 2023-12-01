@@ -83,7 +83,9 @@ async function receiveMessage() {
     const { Messages } = await sqsClient.send(receiveCommand)
 
     for (const message of Messages) {
-      console.log(`INFO message.Body\n${message.Body}`)
+      console.log(`Message received at ${Date.now().toLocaleString()}`)
+      console.log(message.Body)
+
       const { submissionId } = JSON.parse(message.Body)
       const submission = getSubmissionById(submissionId)
       const languageId = getLanguageIdByName(submission.language)
@@ -155,7 +157,9 @@ async function receiveMessage() {
         ReturnValues: 'ALL_NEW',
       })
       const { Attributes } = await dynamoDocument.send(updateCommand)
+
       console.log(Attributes)
+      console.log('Finished')
     }
   } catch (err) {
     console.log(err)
@@ -165,6 +169,7 @@ async function receiveMessage() {
 
 // entrypoint
 const handler = async () => {
+  console.clear()
   console.log('receiver started.')
   console.log(config)
   setInterval(async () => {
