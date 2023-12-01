@@ -92,7 +92,7 @@ async function receiveMessage() {
       const testcases = await getTestcasesByProblemId(submission.problemId)
 
       const { data } = await axios.post(
-        `http://${config.judgeHostDnsName}:2358/submissions/batch`,
+        `http://localhost:2358/submissions/batch`,
         testcases
           .filter((testcase) => !testcase.isSample)
           .map((testcase) => {
@@ -122,7 +122,7 @@ async function receiveMessage() {
       const interval = setInterval(async () => {
         if (count++ === 5) clearInterval(interval)
         const { status, data } = await axios.get(
-          `http://${config.judgeHostDnsName}:2358/submissions/batch`,
+          `http://localhost:2358/submissions/batch`,
           {
             params: { tokens },
           }
