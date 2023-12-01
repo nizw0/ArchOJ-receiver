@@ -66,7 +66,7 @@ async function getTestcasesByProblemId(problemId) {
   const { Item: problem } = await dynamoDocument.send(command)
 
   const { testcases } = problem
-  return [testcases].filter((testcase) => !testcase.isSample)
+  return testcases.filter((testcase) => !testcase.isSample)
 }
 
 async function receiveMessage() {
@@ -174,7 +174,7 @@ const handler = async () => {
   console.log(config)
   setInterval(async () => {
     await receiveMessage()
-  }, 10000)
+  }, 3000)
 }
 
 handler()
