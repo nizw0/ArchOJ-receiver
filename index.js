@@ -26,10 +26,10 @@ const dynamoDocument = DynamoDBDocument.from(dynamoClient)
  */
 function getLanguageIdByName(languageName) {
   const languages = {
-    c: 7,
-    cpp: 12,
-    javascript: 26,
-    python: 38,
+    c: 50,
+    cpp: 54,
+    javascript: 63,
+    python: 71,
   }
   return languages[languageName]
 }
@@ -81,7 +81,7 @@ async function receiveMessage() {
       WaitTimeSeconds: 1,
     })
     const { Messages } = await sqsClient.send(receiveCommand)
-    if (Messages.length === 0) return
+    if (Messages == null) return
 
     for (const message of Messages) {
       console.log(`Message received at ${Date.now().toLocaleString()}`)
