@@ -89,6 +89,8 @@ async function receiveMessage() {
 
       const { submissionId } = JSON.parse(message.Body)
       const submission = await getSubmissionById(submissionId)
+      if (submission.status === true) return
+
       const languageId = getLanguageIdByName(submission.language)
       const testcases = await getTestcasesByProblemId(submission.problemId)
       const pendingSubmissions = testcases.map((testcase) => {
@@ -120,7 +122,7 @@ async function receiveMessage() {
         QueueUrl: config.queueUrl,
         ReceiptHandle: message.ReceiptHandle,
       })
-      const { $metadata } = await sqsClient.send(deleteCommand)
+      await sqsClient.send(deleteCommand)
 
       let count = 0
       let submissions = []
@@ -132,11 +134,12 @@ async function receiveMessage() {
             params: { tokens },
           }
         )
-        if (status == 200) submissions = data.submissions
+        if (status === 200) submissions = data.submissions
       }, 3000)
 
       let result = ''
       for (const submission of submissions) {
+        console.log(submission)
         if (submission.status.description !== 'Accepted') {
           result = submission.status.description
           break
@@ -161,7 +164,7 @@ async function receiveMessage() {
         },
         ReturnValues: 'ALL_NEW',
       })
-      const { Attributes } = await dynamoDocument.send(updateCommand)
+      await dynamoDocument.send(updateCommand)
 
       console.log('Finished')
     }
