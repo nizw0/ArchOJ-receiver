@@ -13,10 +13,10 @@ import axios from 'axios'
 import { config } from './config.js'
 
 const sqsClient = new SQSClient({
-  region: config.region,
+  region: 'ap-southeast-1',
 })
 const dynamoClient = new DynamoDBClient({
-  region: config.region,
+  region: 'ap-southeast-1',
 })
 const dynamoDocument = DynamoDBDocument.from(dynamoClient)
 
