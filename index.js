@@ -93,17 +93,15 @@ async function receiveMessage() {
 
       const { data } = await axios.post(
         `http://localhost:2358/submissions/batch`,
-        testcases
-          .filter((testcase) => !testcase.isSample)
-          .map((testcase) => {
-            return {
-              source_code: submission.code,
-              language_id: languageId,
-              stdin: testcase.input,
-              expected_output: testcase.output,
-              enable_network: false,
-            }
-          })
+        testcases.map((testcase) => {
+          return {
+            source_code: submission.code,
+            language_id: languageId,
+            stdin: testcase.input,
+            expected_output: testcase.output,
+            enable_network: false,
+          }
+        })
       )
       const tokens = data
         .filter((datum) => datum.token != null)
