@@ -81,6 +81,7 @@ async function receiveMessage() {
       WaitTimeSeconds: 1,
     })
     const { Messages } = await sqsClient.send(receiveCommand)
+    if (Messages.length === 0) return
 
     for (const message of Messages) {
       console.log(`Message received at ${Date.now().toLocaleString()}`)
@@ -90,19 +91,26 @@ async function receiveMessage() {
       const submission = await getSubmissionById(submissionId)
       const languageId = getLanguageIdByName(submission.language)
       const testcases = await getTestcasesByProblemId(submission.problemId)
+      const pendingSubmissions = testcases.map((testcase) => {
+        return {
+          source_code: submission.code,
+          language_id: languageId,
+          stdin: testcase.input,
+          expected_output: testcase.output,
+          enable_network: false,
+        }
+      })
 
-      const { data } = await axios.post(
-        `http://localhost:2358/submissions/batch`,
-        testcases.map((testcase) => {
-          return {
-            source_code: submission.code,
-            language_id: languageId,
-            stdin: testcase.input,
-            expected_output: testcase.output,
-            enable_network: false,
-          }
+      const { data } = await axios
+        .post(`http://localhost:2358/submissions/batch`, {
+          submissions: pendingSubmissions,
         })
-      )
+        .then((res) => res)
+        .catch((err) => {
+          console.log(err.response.statusText)
+          console.log(err.response.data.error)
+        })
+
       const tokens = data
         .filter((datum) => datum.token != null)
         .map((datum) => datum.token)
@@ -113,7 +121,6 @@ async function receiveMessage() {
         ReceiptHandle: message.ReceiptHandle,
       })
       const { $metadata } = await sqsClient.send(deleteCommand)
-      console.log($metadata)
 
       let count = 0
       let submissions = []
@@ -156,7 +163,6 @@ async function receiveMessage() {
       })
       const { Attributes } = await dynamoDocument.send(updateCommand)
 
-      console.log(Attributes)
       console.log('Finished')
     }
   } catch (err) {
