@@ -120,9 +120,9 @@ async function receiveMessage() {
             console.log(err.response.data)
           })
         console.log(data.status)
-        if (data.staus.description !== 'Accepted') {
+        if (data.description !== 'Accepted') {
           runtime = data.time
-          result = data.status.description
+          result = data.description
           break
         }
       }
@@ -149,7 +149,8 @@ async function receiveMessage() {
         },
         ReturnValues: 'ALL_NEW',
       })
-      await dynamoDocument.send(updateCommand)
+      const { Attributes } = await dynamoDocument.send(updateCommand)
+      console.log(Attributes)
 
       // Delete message from SQS
       const deleteCommand = new DeleteMessageCommand({
