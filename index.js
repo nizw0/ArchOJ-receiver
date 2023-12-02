@@ -91,12 +91,13 @@ async function receiveMessage() {
       const { submissionId } = JSON.parse(message.Body)
       const submission = await getSubmissionById(submissionId)
       if (submission.status === true) return
+      console.log('Submission fetched.')
 
       const languageId = getLanguageIdByName(submission.language)
       const testcases = await getTestcasesByProblemId(submission.problemId)
 
-      let runtime = null
-      let result = null
+      let runtime = ''
+      let result = ''
 
       for await (const testcase of testcases) {
         const { data } = await axios
@@ -127,7 +128,8 @@ async function receiveMessage() {
         }
       }
 
-      if (result === '') result = 'Accepted'
+      if (result == null) result = 'Accepted'
+      if (runtime != null) runtime += 's'
 
       // Update record
       const updateCommand = new UpdateCommand({
