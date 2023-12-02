@@ -98,8 +98,8 @@ async function receiveMessage() {
       let runtime = null
       let result = null
 
-      for (const testcase of testcases) {
-        const { data: submission } = await axios
+      for await (const testcase of testcases) {
+        const { data } = await axios
           .post(
             `http://localhost:2358/submissions`,
             {
@@ -119,10 +119,10 @@ async function receiveMessage() {
           .catch((err) => {
             console.log(err.response.data)
           })
-        console.log(submission.status)
-        if (submission.staus.description !== 'Accepted') {
-          runtime = submission.time
-          result = submission.status.description
+        console.log(data.status)
+        if (data.staus.description !== 'Accepted') {
+          runtime = data.time
+          result = data.status.description
           break
         }
       }
