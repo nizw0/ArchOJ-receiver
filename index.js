@@ -70,34 +70,6 @@ async function getTestcasesByProblemId(problemId) {
   return testcases.filter((testcase) => !testcase.isSample)
 }
 
-async function getSubmissionsFromJudgeHost(tokens) {
-  let count = 0
-
-  await new Promise(async (resolve) => {
-    const interval = setIntervalAsync(async () => {
-      if (count++ === 5) {
-        ;(async () => {
-          await clearIntervalAsync(interval)
-        })()
-      }
-      const { status, data } = await axios.get(
-        `http://localhost:2358/submissions/batch`,
-        {
-          params: { tokens },
-        }
-      )
-      if (status === 200) {
-        resolve()
-        return data.submissions
-      }
-    }, 3000)
-
-    await clearIntervalAsync(interval)
-  })
-
-  return null
-}
-
 async function receiveMessage() {
   try {
     // Receive message from SQS
@@ -116,53 +88,45 @@ async function receiveMessage() {
       console.log(`Message received at ${new Date(Date.now()).toISOString()}`)
       console.log(message.Body)
 
-      // Delete message from SQS
-      const deleteCommand = new DeleteMessageCommand({
-        QueueUrl: config.queueUrl,
-        ReceiptHandle: message.ReceiptHandle,
-      })
-      await sqsClient.send(deleteCommand)
-
       const { submissionId } = JSON.parse(message.Body)
       const submission = await getSubmissionById(submissionId)
       if (submission.status === true) return
 
       const languageId = getLanguageIdByName(submission.language)
       const testcases = await getTestcasesByProblemId(submission.problemId)
-      const pendingSubmissions = testcases.map((testcase) => {
-        return {
-          source_code: submission.code,
-          language_id: languageId,
-          stdin: testcase.input,
-          expected_output: testcase.output,
-          enable_network: false,
-        }
-      })
 
-      const { data } = await axios
-        .post(`http://localhost:2358/submissions/batch`, {
-          submissions: pendingSubmissions,
-        })
-        .then((res) => res)
-        .catch((err) => {
-          console.log(err.response.statusText)
-          console.log(err.response.data.error)
-        })
+      let runtime = null
+      let result = null
 
-      const tokens = data
-        .filter((datum) => datum.token != null)
-        .map((datum) => datum.token)
-
-      let submissions = await getSubmissionsFromJudgeHost(tokens)
-
-      let result = ''
-      for (const submission of submissions) {
-        console.log(submission)
-        if (submission.status.description !== 'Accepted') {
+      for (const testcase of testcases) {
+        const { data: submission } = await axios
+          .post(
+            `http://localhost:2358/submissions`,
+            {
+              source_code: submission.code,
+              language_id: languageId,
+              stdin: testcase.input,
+              expected_output: testcase.output,
+              enable_network: false,
+            },
+            {
+              params: {
+                wait: true,
+              },
+            }
+          )
+          .then((res) => res)
+          .catch((err) => {
+            console.log(err.response.data)
+          })
+        console.log(submission.status)
+        if (submission.staus.description !== 'Accepted') {
+          runtime = submission.time
           result = submission.status.description
           break
         }
       }
+
       if (result === '') result = 'Accepted'
 
       // Update record
@@ -171,18 +135,29 @@ async function receiveMessage() {
         Key: {
           id: submission.id,
         },
-        UpdateExpression: 'SET #status = :status, #result = :result',
+        UpdateExpression:
+          'SET #runtime = :runtime, #status = :status, #result = :result',
         ExpressionAttributeNames: {
+          '#runtime': 'runtime',
           '#status': 'status',
           '#result': 'result',
         },
         ExpressionAttributeValues: {
+          ':runtime': runtime,
           ':status': true,
           ':result': result,
         },
         ReturnValues: 'ALL_NEW',
       })
       await dynamoDocument.send(updateCommand)
+
+      // Delete message from SQS
+      const deleteCommand = new DeleteMessageCommand({
+        QueueUrl: config.queueUrl,
+        ReceiptHandle: message.ReceiptHandle,
+      })
+      await sqsClient.send(deleteCommand)
+      console.log('Message deleted.')
 
       console.log('Finished')
     }
