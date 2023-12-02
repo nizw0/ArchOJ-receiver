@@ -10,7 +10,6 @@ import {
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb'
 import axios from 'axios'
-import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async'
 import { config } from './config.js'
 
 const sqsClient = new SQSClient({
