@@ -87,6 +87,14 @@ async function receiveMessage() {
       console.log(`Message received at ${new Date(Date.now()).toISOString()}`)
       console.log(message.Body)
 
+      // Delete message from SQS
+      const deleteCommand = new DeleteMessageCommand({
+        QueueUrl: config.queueUrl,
+        ReceiptHandle: message.ReceiptHandle,
+      })
+      await sqsClient.send(deleteCommand)
+      console.log('Message deleted.')
+
       const { submissionId } = JSON.parse(message.Body)
       const submission = await getSubmissionById(submissionId)
       if (submission.status === true) return
@@ -152,14 +160,6 @@ async function receiveMessage() {
       })
       const { Attributes } = await dynamoDocument.send(updateCommand)
       console.log(Attributes)
-
-      // Delete message from SQS
-      const deleteCommand = new DeleteMessageCommand({
-        QueueUrl: config.queueUrl,
-        ReceiptHandle: message.ReceiptHandle,
-      })
-      await sqsClient.send(deleteCommand)
-      console.log('Message deleted.')
 
       console.log('Finished')
     }
