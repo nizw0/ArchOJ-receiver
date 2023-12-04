@@ -140,8 +140,8 @@ async function receiveMessage() {
       }
 
       if (result == null) result = 'Accepted'
-      if (runtime != null) runtime += 's'
-      else runtime = `${(totalTime / count).toFixed(3)}s`
+      if (runtime === '') runtime = `${(totalTime / count).toFixed(3)}s`
+      else runtime += 's'
 
       // Update record
       const updateCommand = new UpdateCommand({
