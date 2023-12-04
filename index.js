@@ -139,7 +139,7 @@ async function receiveMessage() {
         totalTime += Number(data.time)
       }
 
-      if (result == null) result = 'Accepted'
+      if (result === '') result = 'Accepted'
       if (runtime === '') runtime = `${(totalTime / count).toFixed(3)}s`
       else runtime += 's'
 
