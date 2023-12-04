@@ -103,10 +103,13 @@ async function receiveMessage() {
       const languageId = getLanguageIdByName(submission.language)
       const testcases = await getTestcasesByProblemId(submission.problemId)
 
+      let count = 0
+      let totalTime = 0
       let runtime = ''
       let result = ''
 
       for await (const testcase of testcases) {
+        count++
         const { data } = await axios
           .post(
             `http://localhost:2358/submissions`,
@@ -128,15 +131,17 @@ async function receiveMessage() {
             console.log(err.response.data)
           })
         console.log(data.status)
-        if (data.description !== 'Accepted') {
+        if (data.status.description !== 'Accepted') {
           runtime = data.time
-          result = data.description
+          result = data.status.description
           break
         }
+        totalTime += Number(data.time)
       }
 
       if (result == null) result = 'Accepted'
       if (runtime != null) runtime += 's'
+      else runtime = `${(totalTime / count).toFixed(3)}s`
 
       // Update record
       const updateCommand = new UpdateCommand({
@@ -162,6 +167,12 @@ async function receiveMessage() {
       console.log(Attributes)
 
       console.log('Finished')
+      if (result === 'Accepted') {
+        await axios.post(`${config.backendUrl}/statistics`, {
+          userId: submission.userId,
+          problemId: submission.problemId,
+        })
+      }
     }
   } catch (err) {
     console.log(err)

@@ -10,6 +10,7 @@ const rawParams = await getAllFromParametersStore(
 const params = paramStoreConvertParams(rawParams)
 
 export const config = {
+  backendUrl: params.APIGATEWAY_URL,
   userPoolId: params.COGNITO_USER_POOL_ID,
   userPoolClientId: params.COGNITO_USER_POOL_CLIENT_ID,
   groupName: params.COGNITO_GROUP_NAME,
